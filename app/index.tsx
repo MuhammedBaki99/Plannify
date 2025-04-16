@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+
 type Todo = {
   id: number;
   todo: string | null;
@@ -22,44 +23,70 @@ const Item = ({
   id,
   createdAt,
   deleteTodo,
+  changeType,
+  ChangeTodo,
+  updateTodoText,
 }: {
   todo: string | null;
   id: number;
   type: string;
   createdAt: Date;
   deleteTodo: (id: number) => void;
+  changeType: (id: number) => void;
+  ChangeTodo: (id: number) => void;
+  updateTodoText: (id: number, text: string) => void;
 }) => (
   <View style={styles.todoItem}>
     <View style={styles.ItemBtnList}>
-      <Pressable onPress={() => deleteTodo(id)}>
+      <Pressable
+        onPress={() => deleteTodo(id)}
+        style={{ opacity: type === "text" ? 1 : 0.5 }}
+      >
         <FontAwesome name="trash" size={20} color="white" />
       </Pressable>
-      <Pressable>
-        <FontAwesome name="pencil" size={20} color="white" />
-      </Pressable>
-      <Pressable>
+
+      {type === "text" ? (
+        <Pressable onPress={() => changeType(id)}>
+          <FontAwesome name="pencil" size={20} color="white" />
+        </Pressable>
+      ) : (
+        <Pressable onPress={() => ChangeTodo(id)}>
+          <FontAwesome name="check" size={20} color="white" />
+        </Pressable>
+      )}
+
+      <Pressable
+        disabled={type !== "text"}
+        style={{ opacity: type === "text" ? 1 : 0.5 }}
+        onPress={() => console.log("tıklandı")}
+      >
         <FontAwesome name="check" size={20} color="white" />
       </Pressable>
     </View>
+
     {type === "text" ? (
       <Text style={styles.todoText}>{todo}</Text>
     ) : (
       <TextInput
         placeholder="Yapılacak..."
-        style={styles.todoAddInput}
-        value={todo ?? ""}
+        defaultValue={todo ?? ""}
+        onChangeText={(text: string) => updateTodoText(id, text)}
+        multiline
+        numberOfLines={3}
+        style={styles.todoTextarea}
       />
     )}
+
+    <Text style={styles.todoDate}>
+      {new Date(createdAt).toLocaleDateString()}
+    </Text>
   </View>
 );
+
 export default function App() {
   const idCounter = useRef(1);
   const [todoText, setTodoText] = useState<string | null>(null);
   const [todoList, setTodoList] = useState<Todo[]>([]);
-
-  useEffect(() => {
-    console.log(todoText);
-  }, [todoText]);
 
   const AddTodo = (): void => {
     if (todoText && todoText.trim()) {
@@ -72,16 +99,35 @@ export default function App() {
 
       setTodoList((prev) => [...prev, newTodo]);
       setTodoText(null);
-      idCounter.current += 1; // ID’yi bir artır
+      idCounter.current += 1;
     }
   };
+
   const deleteTodo = (id: number) => {
-    setTodoList(todoList.filter((x) => x.id !== id));
+    setTodoList((prev) => prev.filter((todo) => todo.id !== id));
   };
 
   const ChangeType = (id: number) => {
-    
-  }
+    setTodoList((prev) =>
+      prev.map((todo) =>
+        todo.id === id
+          ? { ...todo, type: todo.type === "text" ? "input" : "text" }
+          : todo
+      )
+    );
+  };
+
+  const ChangeTodo = (id: number) => {
+    setTodoList((prev) =>
+      prev.map((todo) => (todo.id === id ? { ...todo, type: "text" } : todo))
+    );
+  };
+
+  const updateTodoText = (id: number, text: string) => {
+    setTodoList((prev) =>
+      prev.map((todo) => (todo.id === id ? { ...todo, todo: text } : todo))
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -111,6 +157,9 @@ export default function App() {
             createdAt={item.createdAt}
             deleteTodo={deleteTodo}
             type={item.type}
+            changeType={ChangeType}
+            ChangeTodo={ChangeTodo}
+            updateTodoText={updateTodoText}
           />
         )}
         keyExtractor={(item) => item.id.toString()}
@@ -126,10 +175,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "center",
     backgroundColor: "#fff",
-  },
-  title: {
-    fontSize: 20,
-    color: "purple",
   },
   logo: {
     width: "70%",
@@ -173,6 +218,7 @@ const styles = StyleSheet.create({
     margin: 10,
   },
   todoItem: {
+    position: "relative",
     display: "flex",
     flexDirection: "row",
     margin: 10,
@@ -194,5 +240,19 @@ const styles = StyleSheet.create({
     padding: 4,
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
+  },
+  todoDate: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#8B1C2B",
+    color: "white",
+    padding: 4,
+    borderTopLeftRadius: 8,
+  },
+  todoTextarea: {
+    flex: 1,
+    padding: 8,
+    textAlignVertical: "top", // Android'de üstten başlasın
   },
 });

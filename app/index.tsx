@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Todo = {
   id: number;
@@ -87,6 +88,43 @@ export default function App() {
   const idCounter = useRef(1);
   const [todoText, setTodoText] = useState<string | null>(null);
   const [todoList, setTodoList] = useState<Todo[]>([]);
+
+  const saveTodoList = async (list: Todo[]) => {
+    try {
+      const jsonValue = JSON.stringify(list);
+      await AsyncStorage.setItem("@todo_list", jsonValue);
+    } catch (e) {
+      console.error("Veri kaydedilirken hata:", e);
+    }
+  };
+
+  const loadTodoList = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem("@todo_list");
+      if (jsonValue != null) {
+        const parsed = JSON.parse(jsonValue);
+        const todos = parsed.map((todo: any) => ({
+          ...todo,
+          createdAt: new Date(todo.createdAt),
+        }));
+        setTodoList(todos);
+
+        if (todos.length > 0) {
+          idCounter.current = Math.max(...todos.map((t: Todo) => t.id)) + 1;
+        }
+      }
+    } catch (e) {
+      console.error("Veri yüklenirken hata:", e);
+    }
+  };
+
+  useEffect(() => {
+    loadTodoList();
+  }, []);
+
+  useEffect(() => {
+    saveTodoList(todoList);
+  }, [todoList]);
 
   const AddTodo = (): void => {
     if (todoText && todoText.trim()) {
